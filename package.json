@@ -1,0 +1,37 @@
+{
+  "name": "@carolinedanslesnuages/ellen",
+  "version": "0.1.0",
+  "description": "Serveur MCP qui donne à un agent les données publiques de l'eau en France (Hub'Eau) : eau du robinet, nappes, rivières, assecs. Son client de données s'utilise aussi seul, dans Node ou un navigateur. Sans dépendance.",
+  "type": "module",
+  "bin": {
+    "ellen": "bin/ellen.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/client/index.d.ts",
+      "default": "./src/client/index.mjs"
+    },
+    "./client": {
+      "types": "./src/client/index.d.ts",
+      "default": "./src/client/index.mjs"
+    }
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node bin/ellen.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "hubeau",
+    "eau",
+    "open-data"
+  ],
+  "license": "MIT"
+}
