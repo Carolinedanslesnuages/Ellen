@@ -1,31 +1,8 @@
 /** Drinking water: the networks serving a commune, and the latest test results, grouped by sample. */
+import { groupBySample } from '../../client/index.mjs';
 import { SCHEMAS, required, optional, countOf } from '../arguments.mjs';
 
 const SOURCE = "Hub'Eau, qualité de l'eau potable (contrôle sanitaire des ARS)";
-
-/** Results of the same sample together: one date, one verdict, several measures. */
-export function groupBySample(items) {
-  const samples = new Map();
-  for (const item of items) {
-    if (!samples.has(item.code_prelevement)) {
-      samples.set(item.code_prelevement, {
-        date: item.date_prelevement,
-        reseau: item.nom_uge ?? null,
-        distributeur: item.nom_distributeur ?? null,
-        conclusion: item.conclusion_conformite_prelevement ?? null,
-        mesures: [],
-      });
-    }
-    samples.get(item.code_prelevement).mesures.push({
-      parametre: item.libelle_parametre,
-      resultat: item.resultat_alphanumerique ?? item.resultat_numerique,
-      unite: item.libelle_unite === 'SANS OBJET' ? null : item.libelle_unite ?? null,
-      limite_qualite: item.limite_qualite_parametre ?? null,
-      reference_qualite: item.reference_qualite_parametre ?? null,
-    });
-  }
-  return [...samples.values()];
-}
 
 export function drinkingWaterTools(client) {
   return [
@@ -71,7 +48,20 @@ export function drinkingWaterTools(client) {
           parameterLabel: args.parametre,
           size: countOf(args, 30, 200),
         });
-        return { source: SOURCE, total_mesures: total, mesures_lues: items.length, prelevements: groupBySample(items) };
+        const prelevements = groupBySample(items).map((sample) => ({
+          date: sample.date,
+          reseau: sample.network,
+          distributeur: sample.distributor,
+          conclusion: sample.conclusion,
+          mesures: sample.measures.map((measure) => ({
+            parametre: measure.parameter,
+            resultat: measure.result,
+            unite: measure.unit,
+            limite_qualite: measure.qualityLimit,
+            reference_qualite: measure.qualityReference,
+          })),
+        }));
+        return { source: SOURCE, total_mesures: total, mesures_lues: items.length, prelevements };
       },
     },
   ];

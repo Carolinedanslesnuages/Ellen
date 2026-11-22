@@ -78,11 +78,33 @@ const { total, items } = await water.dryRiverObservations({ departmentCode: '35'
 | `drinkingWaterNetworks`, `drinkingWaterResults` | Qualité de l'eau potable |
 | `groundwaterStations`, `groundwaterLevels` | Piézométrie |
 | `riverStations`, `riverReadings`, `riverDailyFlows` | Hydrométrie |
-| `dryRiverObservations` | Écoulement des cours d'eau (Onde) |
+| `dryRiverStations`, `dryRiverObservations` | Écoulement des cours d'eau (Onde) |
 | `findCommunes` | API Géo |
 
 Chaque fonction Hub'Eau renvoie `{ total, items }`. Les dates s'écrivent `AAAA-MM-JJ`. Une
 erreur de service lève une `WaterDataError` (message en français, `status`, `address`).
+
+- **Sur une carte :** les stations et les observations acceptent `bbox`, un rectangle
+  `[ouest, sud, est, nord]` en degrés, pour ne demander que ce qui est à l'écran ou dans un
+  bassin.
+- **Annuler :** chaque fonction accepte `signal` (un `AbortSignal`). Quand on change de lieu pendant
+  un chargement, l'ancienne requête s'arrête et rejette une `AbortError`, pas une `WaterDataError`.
+- **Lire les données :** des fonctions pures font ce que le serveur fait pour l'agent :
+  `readRiverReadings` et `readDailyFlows` (mètres et m³/s, une mesure par date), `flowStateOf`
+  (l'état Onde en mots), `groupBySample` (les analyses d'eau potable par prélèvement).
+
+```js
+import { createWaterClient, readRiverReadings } from '@carolinedanslesnuages/ellen/client';
+
+const water = createWaterClient();
+const controller = new AbortController();
+const { items: stations } = await water.riverStations({ bbox: [-1.8, 48.0, -1.5, 48.2], signal: controller.signal });
+const { items } = await water.riverReadings({ entityCode: stations[0].code_site, quantity: 'Q' });
+const readings = readRiverReadings(items, 'Q'); // [{ date, station, value: m³/s }]
+```
+
+Pour l'installer dans un projet, épinglez une version :
+`"@carolinedanslesnuages/ellen": "github:Carolinedanslesnuages/ellen#v0.2.0"`.
 
 ## Limites
 

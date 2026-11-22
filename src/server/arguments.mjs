@@ -43,6 +43,3 @@ export function oneOf(args, names) {
 export function daysAgo(days, today = new Date()) {
   return new Date(today.getTime() - days * 86_400_000).toISOString().slice(0, 10);
 }
-
-/** Rounded number, or null when the source has none. */
-export const rounded = (value, digits = 3) => (typeof value === 'number' && Number.isFinite(value) ? Number(value.toFixed(digits)) : null);

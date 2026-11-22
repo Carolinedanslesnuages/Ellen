@@ -14,24 +14,33 @@ export class WaterDataError extends Error {
   }
 }
 
-/** Query string without empty values: undefined, null and '' are left out. */
+/** Query string without empty values: undefined, null and '' are left out. Arrays are joined with commas. */
 export function queryOf(params = {}) {
   const query = new URLSearchParams();
   for (const [name, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== '') query.set(name, String(value));
+    if (value !== undefined && value !== null && value !== '') query.set(name, Array.isArray(value) ? value.join(',') : String(value));
   }
   return query.toString();
+}
+
+/** The caller's signal (to cancel a request no longer needed) and the time limit, together. */
+function signalOf(signal) {
+  const timeout = AbortSignal.timeout(TIMEOUT_MS);
+  if (!signal) return timeout;
+  return typeof AbortSignal.any === 'function' ? AbortSignal.any([signal, timeout]) : signal;
 }
 
 export function createRequester({ fetchImpl = globalThis.fetch, baseAddress = HUBEAU_ADDRESS } = {}) {
   if (typeof fetchImpl !== 'function') throw new WaterDataError('Aucune fonction fetch disponible : Node 20 ou plus, ou un navigateur récent.');
 
   /** Hub'Eau answers 200 (everything) or 206 (one page of more): both are results. */
-  async function requestJson(address) {
+  async function requestJson(address, { signal } = {}) {
     let response;
     try {
-      response = await fetchImpl(address, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+      response = await fetchImpl(address, { headers: { Accept: 'application/json' }, signal: signalOf(signal) });
     } catch (error) {
+      // A cancelled request is not a service failure: the caller asked for it, it gets its AbortError back.
+      if (signal?.aborted) throw signal.reason ?? error;
       throw new WaterDataError(`Service injoignable (${error.message}).`, { address });
     }
     if (response.status === 204) return null;
@@ -44,9 +53,9 @@ export function createRequester({ fetchImpl = globalThis.fetch, baseAddress = HU
   }
 
   /** A Hub'Eau list: { total, items }. */
-  async function requestList(path, params) {
+  async function requestList(path, params, { signal } = {}) {
     const query = queryOf(params);
-    const page = await requestJson(`${baseAddress}${path}${query ? `?${query}` : ''}`);
+    const page = await requestJson(`${baseAddress}${path}${query ? `?${query}` : ''}`, { signal });
     if (!page) return { total: 0, items: [] };
     return { total: page.count ?? page.data?.length ?? 0, items: page.data ?? [] };
   }

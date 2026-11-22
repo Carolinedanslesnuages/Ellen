@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createWaterClient, WaterDataError, FLOW_STATES } from '../src/client/index.mjs';
+import { createWaterClient, WaterDataError, FLOW_STATES, onePerDate, readRiverReadings, readDailyFlows, flowStateOf, groupBySample } from '../src/client/index.mjs';
 
 /** A fake fetch that records the addresses and answers with the given status and body. */
 function fakeFetch(answer = { status: 200, body: { count: 0, data: [] } }) {
@@ -69,4 +69,32 @@ test('204 is an empty list; other failures are WaterDataError with a French mess
   await assert.rejects(createWaterClient(fakeFetch({ status: 200, body: '<html>' })).riverStations({}), /pas du JSON/);
   const offline = createWaterClient({ fetchImpl: async () => { throw new Error('ENOTFOUND'); } });
   await assert.rejects(offline.riverStations({}), /injoignable \(ENOTFOUND\)/);
+});
+
+test('a bbox and a cancellation signal reach Hub’Eau; a cancelled request is not a service failure', async () => {
+  const { fetchImpl, calls } = fakeFetch();
+  const water = createWaterClient({ fetchImpl });
+  await water.dryRiverStations({ bbox: [-1.8, 48.0, -1.5, 48.2] });
+  assert.equal(calls[0].pathname, '/api/v1/ecoulement/stations');
+  assert.equal(calls[0].searchParams.get('bbox'), '-1.8,48,-1.5,48.2', '[west, south, east, north], as Anita writes it');
+
+  const controller = new AbortController();
+  const waiting = createWaterClient({
+    fetchImpl: (address, { signal }) => new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
+  }).riverStations({ departmentCode: '35', signal: controller.signal });
+  controller.abort();
+  await assert.rejects(waiting, (error) => error.name === 'AbortError' && !(error instanceof WaterDataError));
+});
+
+test('readers: one reading per date (the station’s), metres and m³/s, Onde states, samples', () => {
+  const site = { date_obs: 'T1', code_station: null, resultat_obs: 3100 };
+  const station = { date_obs: 'T1', code_station: 'I912201002', resultat_obs: 3100 };
+  assert.deepEqual(onePerDate([site, station], 'date_obs'), [station]);
+  assert.deepEqual(readRiverReadings([site, station], 'H'), [{ date: 'T1', station: 'I912201002', value: 3.1 }]);
+  assert.deepEqual(readDailyFlows([{ date_obs_elab: 'J1', code_station: 'S', resultat_obs_elab: 687, libelle_statut: 'Donnée brute' }]), [{ date: 'J1', station: 'S', value: 0.687, status: 'Donnée brute' }]);
+  assert.equal(flowStateOf({ code_ecoulement: '1f' }), 'Écoulement visible faible');
+  const sample = (code, parameter) => ({ code_prelevement: code, libelle_parametre: parameter, resultat_numerique: 21, libelle_unite: 'SANS OBJET' });
+  const samples = groupBySample([sample('A', 'Nitrates'), sample('A', 'pH'), sample('B', 'pH')]);
+  assert.equal(samples.length, 2);
+  assert.deepEqual(samples[0].measures.map((measure) => [measure.parameter, measure.unit]), [['Nitrates', null], ['pH', null]]);
 });

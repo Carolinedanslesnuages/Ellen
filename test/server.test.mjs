@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 import { PassThrough } from 'node:stream';
 import { createServer } from '../src/server/protocol.mjs';
 import { allTools } from '../src/server/tools/index.mjs';
-import { groupBySample } from '../src/server/tools/drinking-water.mjs';
-import { onePerDate } from '../src/server/tools/rivers.mjs';
 import { daysAgo } from '../src/server/arguments.mjs';
 
 /** A client that answers every call with the given items, and remembers the options. */
@@ -55,9 +53,7 @@ test('a bad argument is a tool error the agent can read, not a protocol error', 
   assert.match((await call('nappes_stations', {})).content[0].text, /au moins un de ces arguments/);
 });
 
-test('drinking water: results grouped by sample, networks of the latest year', async () => {
-  const sample = (code, parameter) => ({ code_prelevement: code, date_prelevement: '2026-09-29T14:03:00Z', libelle_parametre: parameter, resultat_numerique: 21, libelle_unite: 'mg/L', conclusion_conformite_prelevement: 'Conforme' });
-  assert.equal(groupBySample([sample('A', 'Nitrates'), sample('A', 'pH'), sample('B', 'pH')]).length, 2);
+test('drinking water: networks of the latest year', async () => {
   const { call } = serverWith({ drinkingWaterNetworks: [{ nom_reseau: 'R', annee: '2026', nom_quartier: '-' }, { nom_reseau: 'R', annee: '2025' }] });
   const { reseaux } = (await call('eau_potable_reseaux', { code_commune: '35238' })).structuredContent;
   assert.deepEqual(reseaux, [{ reseau: 'R', code_reseau: undefined, quartier: null, annee: '2026' }]);
@@ -66,7 +62,6 @@ test('drinking water: results grouped by sample, networks of the latest year', a
 test('rivers: one reading per date (the station’s), mm and l/s turned into m and m³/s, 30 days by default', async () => {
   const site = { date_obs: 'T1', code_station: null, resultat_obs: 3100 };
   const station = { date_obs: 'T1', code_station: 'I912201002', resultat_obs: 3100 };
-  assert.deepEqual(onePerDate([site, station], 'date_obs'), [station]);
   const { call, calls } = serverWith({ riverReadings: [site, station, { date_obs: 'T0', code_station: 'I912201002', resultat_obs: 2950 }] });
   const { mesures } = (await call('riviere_temps_reel', { code: 'I9122010', grandeur: 'hauteur' })).structuredContent;
   assert.deepEqual(mesures, [{ date: 'T1', station: 'I912201002', hauteur_m: 3.1 }, { date: 'T0', station: 'I912201002', hauteur_m: 2.95 }]);

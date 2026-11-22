@@ -10,7 +10,7 @@ import { createRequester, queryOf } from './request.mjs';
 import * as water from './water.mjs';
 
 export { WaterDataError, HUBEAU_ADDRESS } from './request.mjs';
-export { FLOW_STATES } from './water.mjs';
+export * from './readers.mjs';
 
 const GEO_ADDRESS = 'https://geo.api.gouv.fr';
 
@@ -25,12 +25,13 @@ export function createWaterClient({ fetchImpl = globalThis.fetch, baseAddress } 
     riverStations: bind(water.riverStations),
     riverReadings: bind(water.riverReadings),
     riverDailyFlows: bind(water.riverDailyFlows),
+    dryRiverStations: bind(water.dryRiverStations),
     dryRiverObservations: bind(water.dryRiverObservations),
 
     /** Communes matching a name, the most populated first (API Géo). */
-    async findCommunes({ name, size = 5 }) {
+    async findCommunes({ name, size = 5, signal }) {
       const query = queryOf({ nom: name, fields: 'nom,code,codeDepartement,codesPostaux,population,centre', boost: 'population', limit: size });
-      return (await requestJson(`${GEO_ADDRESS}/communes?${query}`)) ?? [];
+      return (await requestJson(`${GEO_ADDRESS}/communes?${query}`, { signal })) ?? [];
     },
   };
 }

@@ -1,5 +1,6 @@
 /** Groundwater: the monitoring wells of an area, and the water level of one of them. */
-import { SCHEMAS, required, optional, countOf, oneOf, rounded } from '../arguments.mjs';
+import { rounded } from '../../client/index.mjs';
+import { SCHEMAS, required, optional, countOf, oneOf } from '../arguments.mjs';
 
 const SOURCE = "Hub'Eau, piézométrie (niveaux des nappes, ADES)";
 const BSS_CODE = { type: 'string', minLength: 5, description: 'Code BSS du piézomètre (ex. 02465X0061/F), donné par nappes_stations.' };

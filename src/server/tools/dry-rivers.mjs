@@ -1,5 +1,5 @@
 /** Dry rivers: what the Onde observers saw in small streams (flowing, weak, not visible, dry). */
-import { FLOW_STATES } from '../../client/index.mjs';
+import { flowStateOf } from '../../client/index.mjs';
 import { SCHEMAS, optional, countOf, oneOf } from '../arguments.mjs';
 
 const SOURCE = "Hub'Eau, écoulement des cours d'eau (observatoire Onde de l'OFB)";
@@ -46,7 +46,7 @@ export function dryRiverTools(client) {
           code_station: item.code_station,
           cours_eau: item.libelle_cours_eau,
           commune: item.libelle_commune,
-          ecoulement: FLOW_STATES[item.code_ecoulement] ?? item.libelle_ecoulement,
+          ecoulement: flowStateOf(item),
         }));
         return { source: SOURCE, total, decompte: tally(observations), observations };
       },
