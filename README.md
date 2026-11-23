@@ -34,16 +34,10 @@ l'agent comme un message qui dit quoi corriger.
 
 ## Installation
 
-Node 20 ou plus, aucune dépendance :
+Node 20 ou plus, aucune dépendance. Déclarez le serveur dans votre client MCP. Avec Claude Code :
 
 ```sh
-git clone https://github.com/Carolinedanslesnuages/ellen.git
-```
-
-Puis déclarez le serveur dans votre client MCP. Avec Claude Code :
-
-```sh
-claude mcp add ellen -- node /chemin/vers/ellen/bin/ellen.mjs
+claude mcp add ellen -- npx -y @carolinedanslesnuages/ellen
 ```
 
 Ou dans la configuration JSON d'un autre client :
@@ -51,7 +45,7 @@ Ou dans la configuration JSON d'un autre client :
 ```json
 {
   "mcpServers": {
-    "ellen": { "command": "node", "args": ["/chemin/vers/ellen/bin/ellen.mjs"] }
+    "ellen": { "command": "npx", "args": ["-y", "@carolinedanslesnuages/ellen"] }
   }
 }
 ```
@@ -103,8 +97,7 @@ const { items } = await water.riverReadings({ entityCode: stations[0].code_site,
 const readings = readRiverReadings(items, 'Q'); // [{ date, station, value: m³/s }]
 ```
 
-Pour l'installer dans un projet, épinglez une version :
-`"@carolinedanslesnuages/ellen": "github:Carolinedanslesnuages/ellen#v0.2.0"`.
+Pour l'installer dans un projet : `npm install @carolinedanslesnuages/ellen`.
 
 ## Limites
 
